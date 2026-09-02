@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#ffffff" />
+    <title>OpenArm Skill Studio</title>
+    <meta
+      name="description"
+      content="Конструктор и пульт выполнения Skills для bimanual OpenArm"
+    />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="topbar-actions">
+          <div class="system-state" id="system-state" aria-live="polite">
+            <span class="status-dot waiting"></span>
+            <span>Подключение…</span>
+          </div>
+          <button class="icon-button" id="refresh-button" type="button" title="Обновить">
+            <span aria-hidden="true">↻</span><span class="sr-only">Обновить</span>
+          </button>
+          <a class="ghost-button" href="/docs" target="_blank" rel="noreferrer">API</a>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <aside class="skills-pane panel">
+          <div class="panel-heading">
+            <div>
+              <span class="section-kicker">Библиотека</span>
+              <h2>Skills</h2>
+            </div>
+            <span class="count-badge" id="skills-count">0</span>
+          </div>
+          <div class="search-wrap">
+            <span aria-hidden="true">⌕</span>
+            <input id="skill-search" type="search" placeholder="Найти Skill" />
+          </div>
+          <div class="skill-list" id="skill-list" aria-live="polite">
+            <div class="empty-small">Загрузка Skills…</div>
+          </div>
+          <button class="primary-button full" id="new-skill-button" type="button">
+            <span aria-hidden="true">＋</span> Новый Skill
+          </button>
+        </aside>
+
+        <section class="editor-pane panel">
+          <div class="editor-header">
+            <div class="editor-copy">
+              <span class="section-kicker">Конструктор</span>
+              <input
+                class="title-input"
+                id="skill-name"
+                value="Выберите Skill"
+                aria-label="Название Skill"
+                disabled
+              />
+              <input
+                class="description-input"
+                id="skill-description"
+                placeholder="Описание сценария"
+                aria-label="Описание Skill"
+                disabled
+              />
+            </div>
+            <div class="editor-actions">
+              <button class="ghost-button danger" id="delete-skill-button" disabled type="button">
+                Удалить
+              </button>
+              <button class="secondary-button" id="save-skill-button" disabled type="button">
+                Сохранить
+              </button>
+              <button class="run-button" id="run-skill-button" disabled type="button">
+                <span class="play-icon" aria-hidden="true">▶</span> Запустить
+              </button>
+            </div>
+          </div>
+
+          <div class="action-toolbar" aria-label="Добавить действие">
+            <span>Добавить:</span>
+            <button data-add-action="move" type="button" disabled><i class="action-glyph move">M</i> Move</button>
+            <button data-add-action="gripper" type="button" disabled><i class="action-glyph grip">G</i> Gripper</button>
+            <button data-add-action="wait" type="button" disabled><i class="action-glyph wait">W</i> Wait</button>
+            <button data-add-action="parallel" type="button" disabled><i class="action-glyph parallel">P</i> Parallel</button>
+          </div>
+
+          <div class="sequence-head">
+            <div>
+              <span class="section-kicker">Последовательность</span>
+              <h3>Шаги выполнения</h3>
+            </div>
+            <span class="muted" id="action-count">0 действий</span>
+          </div>
+          <div class="action-list" id="action-list">
+            <div class="empty-state" aria-hidden="true"></div>
+          </div>
+        </section>
+
+        <aside class="telemetry-pane">
+          <section class="panel robot-panel">
+            <div class="panel-heading compact">
+              <div>
+                <h2>Робот</h2>
+              </div>
+            </div>
+            <div class="arm-readout" id="left-arm-readout">
+              <div class="arm-label"><span class="arm-dot left"></span> Левая рука</div>
+              <div class="pose-value">—</div>
+            </div>
+            <div class="arm-readout" id="right-arm-readout">
+              <div class="arm-label"><span class="arm-dot right"></span> Правая рука</div>
+              <div class="pose-value">—</div>
+            </div>
+            <div class="nudge-preview">
+              <div class="inline-heading">
+                <span>Ручное позиционирование</span>
+                <div class="compact-selects">
+                  <select id="nudge-arm" aria-label="Рука для ручного позиционирования">
+                    <option value="left">LEFT</option>
+                    <option value="right">RIGHT</option>
+                  </select>
+                </div>
+              </div>
+              <div class="nudge-subhead">
+                <span>Позиция</span>
+                <select id="nudge-step" aria-label="Шаг перемещения">
+                  <option value="0.005">5 mm</option>
+                  <option value="0.01" selected>10 mm</option>
+                  <option value="0.02">20 mm</option>
+                </select>
+              </div>
+              <div class="nudge-grid" aria-label="Пошаговое перемещение">
+                <button type="button" data-nudge-axis="x" data-nudge-sign="-1">−X</button><button type="button" data-nudge-axis="x" data-nudge-sign="1">+X</button>
+                <button type="button" data-nudge-axis="y" data-nudge-sign="-1">−Y</button><button type="button" data-nudge-axis="y" data-nudge-sign="1">+Y</button>
+                <button type="button" data-nudge-axis="z" data-nudge-sign="-1">−Z</button><button type="button" data-nudge-axis="z" data-nudge-sign="1">+Z</button>
+              </div>
+              <div class="nudge-subhead">
+                <span>Ориентация RPY</span>
+                <select id="nudge-angle-step" aria-label="Шаг поворота">
+                  <option value="1">1°</option>
+                  <option value="5" selected>5°</option>
+                  <option value="10">10°</option>
+                  <option value="15">15°</option>
+                </select>
+              </div>
+              <div class="nudge-grid" aria-label="Пошаговый поворот">
+                <button type="button" data-nudge-rotation-axis="x" data-nudge-sign="-1">−Roll</button><button type="button" data-nudge-rotation-axis="x" data-nudge-sign="1">+Roll</button>
+                <button type="button" data-nudge-rotation-axis="y" data-nudge-sign="-1">−Pitch</button><button type="button" data-nudge-rotation-axis="y" data-nudge-sign="1">+Pitch</button>
+                <button type="button" data-nudge-rotation-axis="z" data-nudge-sign="-1">−Yaw</button><button type="button" data-nudge-rotation-axis="z" data-nudge-sign="1">+Yaw</button>
+              </div>
+              <div class="teach-row">
+                <select id="capture-reference" aria-label="Система координат сохраняемой pose">
+                  <option value="world">world</option>
+                  <option value="marker">marker</option>
+                </select>
+                <input id="capture-frame" value="aruco_marker_1" aria-label="TF frame маркера" disabled />
+              </div>
+              <button class="secondary-button full compact-button" id="capture-pose-button" type="button" disabled>
+                Сохранить текущую pose в Skill
+              </button>
+            </div>
+          </section>
+
+          <section class="panel execution-panel">
+            <div class="panel-heading compact">
+              <div>
+                <span class="section-kicker">Исполнение</span>
+                <h2>Текущий запуск</h2>
+              </div>
+            </div>
+            <div class="execution-empty" id="execution-state">
+              <span class="pulse-ring"></span>
+              <div><strong>Нет активного запуска</strong><small>Выберите Skill и нажмите «Запустить»</small></div>
+            </div>
+            <button class="stop-button full" id="cancel-button" type="button" disabled>Остановить</button>
+          </section>
+
+          <section class="panel marker-panel">
+            <div class="panel-heading compact">
+              <div>
+                <span class="section-kicker">Reference frame</span>
+                <h2>ArUco TF</h2>
+              </div>
+              <span class="marker-count" id="marker-count">0</span>
+            </div>
+            <div class="marker-summary" id="marker-summary">Маркер не опубликован</div>
+            <details class="marker-editor">
+              <summary>Опубликовать / изменить TF</summary>
+              <label class="field wide"><span>Frame ID</span><input id="marker-frame" value="aruco_marker_1" /></label>
+              <div class="field-grid three">
+                <label class="field"><span>X, m</span><input id="marker-x" type="number" step="0.01" value="0.30" /></label>
+                <label class="field"><span>Y, m</span><input id="marker-y" type="number" step="0.01" value="0.00" /></label>
+                <label class="field"><span>Z, m</span><input id="marker-z" type="number" step="0.01" value="0.30" /></label>
+              </div>
+              <div class="field-grid marker-rotation">
+                <label class="field"><span>Roll, °</span><input id="marker-roll" type="number" step="1" value="0" /></label>
+                <label class="field"><span>Pitch, °</span><input id="marker-pitch" type="number" step="1" value="0" /></label>
+                <label class="field"><span>Yaw, °</span><input id="marker-yaw" type="number" step="1" value="0" /></label>
+              </div>
+              <div class="marker-buttons">
+                <button class="secondary-button" id="set-marker-button" type="button">Publish TF</button>
+                <button class="ghost-button danger" id="delete-marker-button" type="button">Удалить</button>
+              </div>
+            </details>
+          </section>
+        </aside>
+      </main>
+    </div>
+    <dialog class="action-dialog" id="action-dialog">
+      <form method="dialog" id="action-form" novalidate>
+        <header class="dialog-header">
+          <div><span class="section-kicker">Action editor</span><h2 id="action-dialog-title">Действие</h2></div>
+          <button class="icon-button" type="button" data-dialog-close aria-label="Закрыть">×</button>
+        </header>
+        <div class="dialog-body" id="action-dialog-body"></div>
+        <footer class="dialog-footer">
+          <button class="ghost-button" type="button" data-dialog-close>Отмена</button>
+          <button class="primary-button" id="commit-action-button" value="default" type="submit">Применить</button>
+        </footer>
+      </form>
+    </dialog>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>
