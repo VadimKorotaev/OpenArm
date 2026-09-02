@@ -1,0 +1,41 @@
+# Python virtual environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Runtime data
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.log
+tmp/
+
+# ROS 2 / colcon workspace
+# OpenArm packages are external dependencies cloned according to README.md.
+ros2_ws/src/
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# Editors and operating-system metadata
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
