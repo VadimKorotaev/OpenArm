@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Apply this project's patches to the vendored openarm_bimanual_moveit_config
-# package. Both patches are idempotent and are re-applied by
-# setup_workspace.sh after the upstream packages are (re-)cloned.
+# package. Both patches are idempotent and should be re-applied after the
+# upstream packages are (re-)cloned.
 #
 # 1. RViz config: adds a TF display for the ArUco marker and the two end
 #    effectors, and frames the camera on the whole workspace. demo.launch.py
@@ -24,7 +24,7 @@ readonly target_launch="${package_root}/launch/demo.launch.py"
 for path in "${source_config}" "${target_config}" "${target_launch}"; do
   if [[ ! -e "${path}" ]]; then
     echo "ERROR: missing ${path}" >&2
-    echo "Run scripts/setup_workspace.sh first." >&2
+    echo "Follow the README section 'Исходники ROS и сборка' first." >&2
     exit 1
   fi
 done

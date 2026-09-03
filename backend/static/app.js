@@ -10,6 +10,8 @@ const state = {
 };
 
 const dialogState = { index: null, draft: null };
+const movePoseRequests = new WeakMap();
+const movePoseSelections = new WeakMap();
 
 const dom = {
   system: document.querySelector("#system-state"),
@@ -564,6 +566,41 @@ function textInput(value, onChange) {
   return input;
 }
 
+function actionIsInCurrentDialog(action) {
+  if (dialogState.draft === action) return true;
+  if (dialogState.draft?.type !== "parallel") return false;
+  return dialogState.draft.branches.some((branch) => branch.actions.includes(action));
+}
+
+async function loadCurrentMovePose(action, changes) {
+  const currentSelection = movePoseSelections.get(action) || {
+    arm: action.arm,
+    kind: action.target.reference.kind,
+    frameId: action.target.reference.frame_id,
+  };
+  const selection = { ...currentSelection, ...changes };
+  movePoseSelections.set(action, selection);
+  const requestId = (movePoseRequests.get(action) || 0) + 1;
+  movePoseRequests.set(action, requestId);
+  const query = new URLSearchParams({
+    reference_kind: selection.kind,
+    frame_id: selection.frameId,
+  });
+  try {
+    const target = await api(`/api/robot/arms/${encodeURIComponent(selection.arm)}/pose?${query}`);
+    if (movePoseRequests.get(action) !== requestId) return;
+    movePoseSelections.delete(action);
+    action.arm = selection.arm;
+    action.target = target;
+    if (actionIsInCurrentDialog(action)) renderActionDialogBody();
+  } catch (error) {
+    if (movePoseRequests.get(action) !== requestId) return;
+    movePoseSelections.delete(action);
+    if (actionIsInCurrentDialog(action)) renderActionDialogBody();
+    toast(`Не удалось получить текущую pose: ${error.message}`, true);
+  }
+}
+
 function grid(...nodes) {
   const wrapper = document.createElement("div");
   wrapper.className = "field-grid";
@@ -583,13 +620,21 @@ function section(title, ...nodes) {
 
 function renderSimpleFields(container, action) {
   if (action.type === "move") {
-    const arm = selectInput(action.arm, [["left", "Левая"], ["right", "Правая"]], (value) => { action.arm = value; });
-    const kind = selectInput(action.target.reference.kind, [["world", "World"], ["marker", "Marker TF"]], (value) => {
-      action.target.reference.kind = value;
-      action.target.reference.frame_id = value === "world" ? "world" : (state.markers[0]?.frame_id || "aruco_marker_1");
-      renderActionDialogBody();
+    const arm = selectInput(action.arm, [["left", "Левая"], ["right", "Правая"]], (value) => {
+      loadCurrentMovePose(action, { arm: value });
     });
-    const frame = textInput(action.target.reference.frame_id, (value) => { action.target.reference.frame_id = value; });
+    const kind = selectInput(action.target.reference.kind, [["world", "World"], ["marker", "Marker TF"]], (value) => {
+      loadCurrentMovePose(action, {
+        kind: value,
+        frameId: value === "world" ? "world" : (state.markers[0]?.frame_id || "aruco_marker_1"),
+      });
+    });
+    const frame = textInput(action.target.reference.frame_id, () => {});
+    frame.addEventListener("change", () => {
+      loadCurrentMovePose(action, {
+        frameId: frame.value.trim(),
+      });
+    });
     frame.disabled = action.target.reference.kind === "world";
     container.append(section("Рука и система координат", grid(field("Arm", arm), field("Reference", kind)), field("Frame ID", frame)));
 

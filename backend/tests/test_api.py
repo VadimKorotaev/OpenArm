@@ -248,6 +248,19 @@ def test_marker_management_and_capture_pose(tmp_path: Path) -> None:
             assert created_marker.status_code == 200
             assert len((await client.get("/api/markers")).json()) == 1
 
+            current = await client.get(
+                "/api/robot/arms/left/pose",
+                params={
+                    "reference_kind": "marker",
+                    "frame_id": "aruco_marker_1",
+                },
+            )
+            assert current.status_code == 200
+            assert current.json()["reference"] == {
+                "kind": "marker",
+                "frame_id": "aruco_marker_1",
+            }
+
             skill = (
                 await client.post(
                     "/api/skills",
@@ -389,12 +402,23 @@ def test_web_ui_and_static_assets_are_served(tmp_path: Path) -> None:
             assert 'data-nudge-rotation-axis="x"' in page.text
             assert 'data-nudge-rotation-axis="y"' in page.text
             assert 'data-nudge-rotation-axis="z"' in page.text
+            marker_option = '<option value="marker">marker</option>'
+            world_option = '<option value="world">world</option>'
+            assert page.text.index(marker_option) < page.text.index(world_option)
+            assert 'id="capture-frame" value="aruco_marker_1"' in page.text
+            disabled_capture_frame = (
+                'id="capture-frame" value="aruco_marker_1" '
+                'aria-label="TF frame маркера" disabled'
+            )
+            assert disabled_capture_frame not in page.text
             assert script.status_code == 200
             assert "nudge_openarm" in script.text
             assert "quaternionFromEulerDegrees" in script.text
             assert "eulerDegreesFromQuaternion" in script.text
             assert 'section("Ориентация RPY, °"' in script.text
             assert 'section("Ориентация quaternion"' not in script.text
+            assert "loadCurrentMovePose" in script.text
+            assert "reference_kind: selection.kind" in script.text
             assert stylesheet.status_code == 200
 
     asyncio.run(scenario())
